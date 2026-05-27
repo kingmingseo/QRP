@@ -1,2 +1,3 @@
-export * from './schemas/health.js'
-export * from './types/api.js'
+export * from './types/api'
+export * from "./schemas/registration"
+export * from "./schemas/login"
