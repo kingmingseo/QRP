@@ -8,8 +8,13 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-  ) {}
+  ) { }
   getHello(): string {
     return 'Hello World!';
+  }
+
+  async checkDuplicateId(userId: string): Promise<boolean> {
+    const exists = await this.userRepository.existsBy({ userId })
+    return exists
   }
 }

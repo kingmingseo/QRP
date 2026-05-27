@@ -10,6 +10,7 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.24",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.8.17",
@@ -18,5 +19,8 @@
   "packageManager": "pnpm@10.33.4",
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "loadash": "^1.0.0"
   }
 }

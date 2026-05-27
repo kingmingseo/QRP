@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { registrationSchema } from "@workspace/shared/schemas/registration"
 
@@ -16,5 +23,15 @@ export class UsersController {
 
     const dto = result.data
     return dto
+  }
+
+  @Get('check-userid')
+  async checkDuplicateId(@Query('userId') userId?: string) {
+    if (!userId?.trim()) {
+      throw new BadRequestException('userId is required')
+    }
+
+    const exists = await this.usersService.checkDuplicateId(userId.trim())
+    return { available: !exists }
   }
 }

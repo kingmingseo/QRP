@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Controller, type UseFormReturn, useForm } from "react-hook-form"
+import { Controller, type UseFormReturn, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { Link } from "react-router"
@@ -14,8 +14,14 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 import { Calendar } from "@workspace/ui/components/calendar"
+import { FieldError } from "@workspace/ui/components/fieldError"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover"
 import {
   Select,
   SelectContent,
@@ -24,14 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@workspace/ui/components/popover"
-import { FieldError } from "@workspace/ui/components/fieldError"
+import { useCheckUserId } from "../hooks/useCheckUserId"
 
 type RegistrationStep = "account" | "health" | "personal"
+type DuplicateStatus = "idle" | "checking" | "available" | "taken"
 
 const accountFields = ["userId", "password", "passwordConfirm"] as const
 const personalFields = ["name", "birthDate", "gender"] as const
@@ -58,11 +60,34 @@ export function RegistrationPage() {
     },
   })
 
+  const userId = useWatch({
+    control: form.control,
+    name: "userId",
+    defaultValue: "",
+  })
+
+  const duplicateStatus = useCheckUserId(userId)
+
   async function handleNextAccount() {
     const isValid = await form.trigger(accountFields)
-    if (isValid) {
-      setStep("personal")
+    if (!isValid) return
+
+    if (duplicateStatus === "checking") {
+      form.setError("userId", { message: "아이디 중복 확인 중입니다." })
+      return
     }
+
+    if (duplicateStatus === "taken") {
+      form.setError("userId", { message: "이미 사용 중인 아이디입니다." })
+      return
+    }
+
+    if (duplicateStatus !== "available") {
+      form.setError("userId", { message: "아이디 중복 확인을 완료해주세요." })
+      return
+    }
+
+    setStep("personal")
   }
 
   async function handleNextPersonal() {
@@ -100,11 +125,11 @@ export function RegistrationPage() {
 
           <div className="space-y-1">
             <CardTitle className="text-2xl">
-              {isHealthStep ? "건강 정보" : isPersonalStep ? "개인 정보" : "회원 가입"}
+              {isHealthStep ? "건강 정보" : isPersonalStep ? "개인 정보" : "회원가입"}
             </CardTitle>
             <CardDescription className="text-xs">
               {isHealthStep
-                ? "응급 상황에서 구조대원이 확인할 수 있는 의료 정보를 입력하세요."
+                ? "응급 상황에서 구조자가 확인할 수 있는 의료 정보를 입력하세요."
                 : isPersonalStep
                   ? "본인 확인에 필요한 기본 정보를 입력하세요."
                   : "QRP 이용을 위한 계정을 생성하세요."}
@@ -119,7 +144,7 @@ export function RegistrationPage() {
             ) : isPersonalStep ? (
               <PersonalInfo form={form} />
             ) : (
-              <AccountFields form={form} />
+              <AccountFields form={form} duplicateStatus={duplicateStatus} />
             )}
 
             <div key={step}>
@@ -159,6 +184,7 @@ export function RegistrationPage() {
                 <Button
                   type="button"
                   className="w-full"
+                  disabled={duplicateStatus === "checking"}
                   onClick={handleNextAccount}
                 >
                   다음
@@ -168,7 +194,7 @@ export function RegistrationPage() {
           </form>
 
           {!isHealthStep && !isPersonalStep && (
-            <p className="text-muted-foreground mt-6 text-center text-sm">
+            <p className="mt-6 text-center text-sm text-muted-foreground">
               이미 계정이 있나요?{" "}
               <Link
                 to="/login"
@@ -184,7 +210,13 @@ export function RegistrationPage() {
   )
 }
 
-function AccountFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
+function AccountFields({
+  form,
+  duplicateStatus,
+}: {
+  form: UseFormReturn<RegistrationDto>
+  duplicateStatus: DuplicateStatus
+}) {
   return (
     <>
       <div className="grid gap-2">
@@ -196,6 +228,16 @@ function AccountFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
           autoComplete="username"
           {...form.register("userId")}
         />
+
+        {duplicateStatus === "checking" && (
+          <p className="text-xs text-muted-foreground">확인 중...</p>
+        )}
+        {duplicateStatus === "available" && (
+          <p className="text-xs text-green-500">사용 가능한 아이디입니다.</p>
+        )}
+        {duplicateStatus === "taken" && (
+          <p className="text-xs text-red-500">이미 사용 중인 아이디입니다.</p>
+        )}
         <FieldError message={form.formState.errors.userId?.message} />
       </div>
 
@@ -236,7 +278,7 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
           name="bloodType"
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="bloodType" className="w-full">
                 <SelectValue placeholder="혈액형을 선택하세요" />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +301,7 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="illness">지병/기저질환</Label>
+        <Label htmlFor="illness">기저질환</Label>
         <Input
           id="illness"
           type="text"
@@ -270,11 +312,11 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="medications">복용중인 약물</Label>
+        <Label htmlFor="medications">복용 중인 약</Label>
         <Input
           id="medications"
           type="text"
-          placeholder="예: 갑상선 약"
+          placeholder="예: 아스피린"
           {...form.register("medications")}
         />
         <FieldError message={form.formState.errors.medications?.message} />
@@ -317,36 +359,35 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
 
             return (
               <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    id="date-picker-simple"
-                    className="justify-start font-normal"
-                  >
-                    {field.value ? (
-                      format(selectedDate!, "PPP")
-                    ) : (
-                      <span className="text-muted-foreground">
-                        날짜를 입력하세요
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    defaultMonth={selectedDate}
-                    onSelect={(date) =>
-                      field.onChange(date ? format(date, "yyyy-MM-dd") : "")
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
-              <FieldError message={form.formState.errors.birthDate?.message} />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      id="birth-date"
+                      className="justify-start font-normal"
+                    >
+                      {field.value ? (
+                        format(selectedDate!, "PPP")
+                      ) : (
+                        <span className="text-muted-foreground">
+                          날짜를 선택하세요
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      defaultMonth={selectedDate}
+                      onSelect={(date) =>
+                        field.onChange(date ? format(date, "yyyy-MM-dd") : "")
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FieldError message={form.formState.errors.birthDate?.message} />
               </>
-              
             )
           }}
         />
@@ -359,7 +400,7 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
           name="gender"
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="gender" className="w-full">
                 <SelectValue placeholder="성별을 선택하세요" />
               </SelectTrigger>
               <SelectContent>
@@ -367,7 +408,7 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
                   <SelectItem value="unknown">모름</SelectItem>
                   <SelectItem value="male">남성</SelectItem>
                   <SelectItem value="female">여성</SelectItem>
-                  <SelectItem value="other">그 외</SelectItem>
+                  <SelectItem value="other">기타</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -378,4 +419,3 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
     </>
   )
 }
-
