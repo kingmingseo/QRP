@@ -19,3 +19,5 @@ To use the components in your app, import them from the `ui` package.
 ```tsx
 import { Button } from "@workspace/ui/components/button";
 ```
+# QRP
+qr코드를 통한 의료정보 제공 
