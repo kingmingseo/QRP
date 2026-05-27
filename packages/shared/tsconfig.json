@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@workspace/shared": ["./src/index.ts"],
+      "@workspace/shared/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "eslint.config.js"],
+  "exclude": ["node_modules", "dist"]
+}
