@@ -1,7 +1,21 @@
 import { BadRequestException, Body, Controller, Get, Post, Req, Res } from "@nestjs/common"
-import type { Request, Response } from "express"
+import type { CookieOptions, Request, Response } from "express"
 import { AuthService } from "./auth.service"
 import { loginSchema, type LoginDto } from "@workspace/shared/schemas/login"
+
+const getAccessTokenCookieOptions = (maxAge?: number): CookieOptions => {
+  const secure =
+    process.env.COOKIE_SECURE === "true" ||
+    process.env.CORS_ORIGIN?.startsWith("https://")
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? "none" : "lax",
+    path: "/",
+    ...(maxAge ? { maxAge } : {}),
+  }
+}
 
 @Controller("auth")
 export class AuthController {
@@ -26,10 +40,7 @@ export class AuthController {
     const loginResult = await this.authService.login(body)
 
     res.cookie("accessToken", loginResult.accessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "none",
-      maxAge: 1000 * 60 * 60,
+      ...getAccessTokenCookieOptions(1000 * 60 * 60),
     })
 
     return {
@@ -39,11 +50,7 @@ export class AuthController {
 
   @Post("logout")
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "none",
-    })
+    res.clearCookie("accessToken", getAccessTokenCookieOptions())
 
     return { success: true }
   }
