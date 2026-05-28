@@ -2,20 +2,8 @@ import { ConflictException, Injectable, InternalServerErrorException } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './users.entity';
 import { Repository } from 'typeorm';
-import type { CreateUserDto } from '@workspace/shared/schemas/registration';
-import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
-import { promisify } from 'node:util';
-
-const scrypt = promisify(scryptCallback);
-const PASSWORD_SALT_LENGTH = 16;
-const PASSWORD_KEY_LENGTH = 64;
-
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(PASSWORD_SALT_LENGTH).toString('hex');
-  const derivedKey = (await scrypt(password, salt, PASSWORD_KEY_LENGTH)) as Buffer;
-
-  return `scrypt:${salt}:${derivedKey.toString('hex')}`;
-}
+import { CreateUserDto } from '@workspace/shared/schemas/registration';
+import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class UsersService {
@@ -32,18 +20,20 @@ export class UsersService {
     return exists
   }
 
-  async createUser(userInfo : CreateUserDto): Promise<User> {
+  async createUser(userInfo: CreateUserDto): Promise<User> {
     const exists = await this.checkDuplicateId(userInfo.userId!)
 
     if (exists) {
       throw new ConflictException('이미 사용 중인 아이디입니다.')
     }
 
+    const saltRounds = 10
+    const hashedPassword = await bcrypt.hash(userInfo.password, saltRounds)
+
     try {
-      const hashedPassword = await hashPassword(userInfo.password)
       const user = this.userRepository.create({
         ...userInfo,
-        password: hashedPassword,
+        password: hashedPassword
       })
       return await this.userRepository.save(user)
     } catch (error) {
