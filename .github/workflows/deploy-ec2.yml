@@ -30,9 +30,7 @@ jobs:
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
-            corepack enable
-            corepack prepare pnpm@10.33.4 --activate
-
+            pnpm --version
             pnpm install --frozen-lockfile
             pnpm --filter @workspace/shared build
             pnpm --filter api build
