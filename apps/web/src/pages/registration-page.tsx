@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, type UseFormReturn, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { Link, useNavigate } from "react-router"
+import { Camera, X } from "lucide-react"
+import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
 
 import { registrationFormSchema, type RegistrationFormDto } from "@workspace/shared"
 import { Button } from "@workspace/ui/components/button"
@@ -43,7 +45,7 @@ import { createUser } from "@/api/user.api"
 type RegistrationStep = "account" | "health" | "personal"
 type DuplicateStatus = "idle" | "checking" | "available" | "taken"
 
-const accountFields = ["userId", "password", "passwordConfirm"] as const
+const accountFields = ["userId", "qrCode", "password", "passwordConfirm"] as const
 const personalFields = ["name", "birthDate", "gender"] as const
 
 export function RegistrationPage() {
@@ -59,6 +61,7 @@ export function RegistrationPage() {
     mode: "onChange",
     defaultValues: {
       userId: "",
+      qrCode: "",
       password: "",
       passwordConfirm: "",
       name: "",
@@ -255,6 +258,22 @@ function RequiredBadge() {
   )
 }
 
+function normalizeQrCode(rawValue: string) {
+  const value = rawValue.trim()
+
+  if (value.startsWith("qrp:")) {
+    return value.replace("qrp:", "").trim()
+  }
+
+  try {
+    const url = new URL(value)
+    const segments = url.pathname.split("/").filter(Boolean)
+    return segments.at(-1) ?? value
+  } catch {
+    return value
+  }
+}
+
 function AccountFields({
   form,
   duplicateStatus,
@@ -262,6 +281,63 @@ function AccountFields({
   form: UseFormReturn<RegistrationFormDto>
   duplicateStatus: DuplicateStatus
 }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const [qrScanError, setQrScanError] = useState("")
+
+  useEffect(() => {
+    if (!isScanning) return
+
+    let isMounted = true
+    let controls: IScannerControls | null = null
+
+    async function startScanner() {
+      setQrScanError("")
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setQrScanError("카메라를 사용할 수 없습니다. 코드를 직접 입력해주세요.")
+        setIsScanning(false)
+        return
+      }
+
+      try {
+        if (!isMounted || !videoRef.current) return
+
+        const codeReader = new BrowserQRCodeReader()
+
+        controls = await codeReader.decodeFromConstraints(
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+            },
+          },
+          videoRef.current,
+          (result) => {
+            const rawValue = result?.getText()
+
+            if (!rawValue) return
+
+            form.setValue("qrCode", normalizeQrCode(rawValue), {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+            setIsScanning(false)
+          },
+        )
+      } catch {
+        setQrScanError("카메라 권한을 확인해주세요. 코드를 직접 입력할 수도 있습니다.")
+        setIsScanning(false)
+      }
+    }
+
+    startScanner()
+
+    return () => {
+      isMounted = false
+      controls?.stop()
+    }
+  }, [form, isScanning])
+
   return (
     <>
       <div className="grid gap-2">
@@ -287,6 +363,46 @@ function AccountFields({
           <p className="text-xs text-red-500">이미 사용 중인 아이디입니다.</p>
         )}
         <FieldError message={form.formState.errors.userId?.message} />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="qr-code">
+          QR 코드
+          <RequiredBadge />
+        </Label>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Input
+            id="qr-code"
+            type="text"
+            placeholder="QR 코드를 스캔하거나 입력하세요"
+            {...form.register("qrCode")}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="px-3"
+            onClick={() => setIsScanning((current) => !current)}
+          >
+            {isScanning ? <X className="size-4" /> : <Camera className="size-4" />}
+            <span className="sr-only">{isScanning ? "스캔 닫기" : "QR 스캔"}</span>
+          </Button>
+        </div>
+
+        {isScanning && (
+          <div className="overflow-hidden rounded-lg border bg-muted">
+            <video
+              ref={videoRef}
+              className="aspect-video w-full object-cover"
+              muted
+              playsInline
+            />
+          </div>
+        )}
+
+        {qrScanError && (
+          <p className="text-xs text-muted-foreground">{qrScanError}</p>
+        )}
+        <FieldError message={form.formState.errors.qrCode?.message} />
       </div>
 
       <div className="grid gap-2">

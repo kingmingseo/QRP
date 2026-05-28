@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const createUserSchema = z.object({
   userId: z.string().min(1, "아이디를 입력하세요"),
+  qrCode: z.string().min(1, "QR 코드를 스캔하거나 입력하세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다"),
   name: z.string().min(1, "이름을 입력하세요"),
   birthDate: z.string().min(1, "생년월일을 선택하세요"),
