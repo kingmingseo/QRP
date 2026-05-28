@@ -28,7 +28,7 @@ export class AuthController {
     res.cookie("accessToken", loginResult.accessToken, {
       httpOnly: true,
       secure: false,
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 1000 * 60 * 60,
     })
 
@@ -42,7 +42,7 @@ export class AuthController {
     res.clearCookie("accessToken", {
       httpOnly: true,
       secure: false,
-      sameSite: "lax",
+      sameSite: "none",
     })
 
     return { success: true }

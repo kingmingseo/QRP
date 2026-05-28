@@ -3,7 +3,7 @@ import { Controller, type UseFormReturn, useForm, useWatch } from "react-hook-fo
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { Link, useNavigate } from "react-router"
-import { Camera, X } from "lucide-react"
+import { Camera, Loader2, X } from "lucide-react"
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
 
 import { registrationFormSchema, type RegistrationFormDto } from "@workspace/shared"
@@ -194,11 +194,20 @@ export function RegistrationPage() {
                     type="button"
                     variant="outline"
                     className="w-full"
+                    disabled={form.formState.isSubmitting}
                     onClick={() => setStep("personal")}
                   >
                     이전
                   </Button>
-                  <Button type="submit" className="w-full">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={form.formState.isSubmitting}
+                    aria-busy={form.formState.isSubmitting}
+                  >
+                    {form.formState.isSubmitting && (
+                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    )}
                     제출
                   </Button>
                 </div>
