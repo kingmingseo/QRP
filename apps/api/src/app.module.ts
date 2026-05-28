@@ -12,12 +12,16 @@ import { AuthModule } from "./auth/auth.module"
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        type: "mysql",
+        type: "postgres",
         host: configService.get<string>("DB_HOST"),
         port: Number(configService.get<string>("DB_PORT")),
         username: configService.get<string>("DB_USER"),
         password: configService.get<string>("DB_PASSWORD"),
         database: configService.get<string>("DB_NAME"),
+        ssl:
+          configService.get<string>("DB_SSL") === "true"
+            ? { rejectUnauthorized: false }
+            : false,
         autoLoadEntities: true,
         synchronize: true,
       }),
@@ -30,7 +34,8 @@ import { AuthModule } from "./auth/auth.module"
   ],
   providers: [
     AppService
-  ]
+  ],
+
 
 })
 export class AppModule { }
