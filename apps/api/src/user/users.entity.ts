@@ -1,25 +1,35 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
 import * as CryptoJS from 'crypto-js';
 
-const SECRET = process.env.ENCRYPTION_SECRET_KEY;
-
 const encryptedColumn = (options?: object): PropertyDecorator =>
   Column({
     ...options,
     transformer: {
       to: (value: string) => {
         if (!value) return value;
-        return CryptoJS.AES.encrypt(value, SECRET).toString();
+
+        // 런타임에 직접 환경변수를 가져옵니다.
+        const secret = process.env.ENCRYPTION_SECRET_KEY;
+        if (!secret) {
+          throw new Error('데이터베이스 암호화 키(ENCRYPTION_SECRET_KEY)가 설정되지 않았습니다.');
+        }
+
+        return CryptoJS.AES.encrypt(value, secret).toString();
       },
       from: (value: string) => {
         if (!value) return value;
-        const bytes = CryptoJS.AES.decrypt(value, SECRET);
+
+        // 런타임에 직접 환경변수를 가져옵니다.
+        const secret = process.env.ENCRYPTION_SECRET_KEY;
+        if (!secret) {
+          throw new Error('데이터베이스 복호화 키(ENCRYPTION_SECRET_KEY)가 설정되지 않았습니다.');
+        }
+
+        const bytes = CryptoJS.AES.decrypt(value, secret);
         return bytes.toString(CryptoJS.enc.Utf8);
       },
     },
   });
-
-
 
 @Entity("users")
 export class User {
@@ -33,7 +43,7 @@ export class User {
   qrCode!: string
 
   @Column()
-  password!: string  
+  password!: string
 
   @encryptedColumn()
   name!: string
