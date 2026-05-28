@@ -5,7 +5,6 @@
       "ES2022"
     ],
     "module": "CommonJS",
-    "moduleResolution": "Node",
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,

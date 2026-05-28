@@ -2,7 +2,7 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './users.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from '@workspace/shared/schemas/registration';
+import { CreateUserDto, EditUserDto } from '@workspace/shared/schemas/registration';
 import * as bcrypt from 'bcrypt'
 
 export type PublicMedicalInfo = Pick<
@@ -24,7 +24,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) { }
-  
+
   async checkDuplicateId(userId: string): Promise<boolean> {
     const exists = await this.userRepository.existsBy({ userId })
     return exists
@@ -52,17 +52,14 @@ export class UsersService {
     }
   }
 
+
+
   async findByUserId(userId: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { userId },
     })
   }
 
-  async findById(id: number): Promise<User | null> {
-    return await this.userRepository.findOne({
-      where: { id },
-    })
-  }
 
   async findPublicMedicalInfoByQrCode(qrCode: string): Promise<PublicMedicalInfo> {
     const user = await this.userRepository.findOne({
@@ -86,4 +83,24 @@ export class UsersService {
     }
   }
 
+  async editMedicalInfoByQrCode(qrCode: string, medicalInfo: EditUserDto) {
+    const user = await this.userRepository.findOne({
+      where: { qrCode },
+    })
+
+    if (!user) {
+      throw new NotFoundException('등록된 의료 정보를 찾을 수 없습니다.')
+    }
+
+    await this.userRepository.save({
+      ...user,
+      ...medicalInfo,
+    })
+
+    return {
+      success: true,
+      message: '의료 정보가 수정되었습니다.',
+    }
+
+  }
 }

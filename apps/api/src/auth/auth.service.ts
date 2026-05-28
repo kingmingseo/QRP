@@ -46,8 +46,8 @@ export class AuthService {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: number }>(accessToken)
-      const user = await this.usersService.findById(payload.sub)
+      const payload = await this.jwtService.verifyAsync<{ userId: string }>(accessToken)
+      const user = await this.usersService.findByUserId(payload.userId)
 
       if (!user) {
         throw new UnauthorizedException("사용자를 찾을 수 없습니다.")

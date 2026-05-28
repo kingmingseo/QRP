@@ -34,5 +34,12 @@ export const registrationFormSchema = createUserSchema
     path: ["passwordConfirm"],
   })
 
+export const editUserSchema = createUserSchema.omit({
+  userId: true,
+  password: true,
+  qrCode: true,
+})
+
+export type EditUserDto = z.infer<typeof editUserSchema>
 export type CreateUserDto = z.infer<typeof createUserSchema>
 export type RegistrationFormDto = z.infer<typeof registrationFormSchema>
