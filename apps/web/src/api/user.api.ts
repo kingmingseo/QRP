@@ -42,6 +42,12 @@ export async function login(loginInfo: LoginDto) {
   return response
 }
 
+export async function logout() {
+  const response = await api.post('/auth/logout')
+
+  return response.data
+}
+
 export async function getMyMedicalInfo() {
   const response = await api.get<MedicalInfo>('/auth/me')
 
