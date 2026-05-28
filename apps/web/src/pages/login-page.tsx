@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema, type LoginDto } from "@workspace/shared"
 import { useForm } from "react-hook-form"
 import { FieldError } from "@workspace/ui/components/fieldError"
+import { useLogin } from "@/hooks/useLogin"
 
 export default function LoginPage() {
 
@@ -25,6 +26,13 @@ export default function LoginPage() {
     },
   })
 
+  const { loginUser, isLoading, errorMessage } = useLogin()
+
+  async function onSubmit(values: LoginDto) {
+    const result = await loginUser(values)
+    console.log(result)
+  }
+
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8 text-foreground">
       <Card className="w-full max-w-[430px] shadow-none">
@@ -35,13 +43,14 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-5">
+          <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)}>
             <div className="grid gap-2">
-              <Label htmlFor="id">아이디</Label>
+              <Label htmlFor="user-id">아이디</Label>
               <Input
-                id="id"
+                id="user-id"
                 type="text"
                 placeholder="아이디를 입력해주세요"
+                {...form.register("userId")}
               />
               <FieldError message={form.formState.errors.userId?.message} />
             </div>
@@ -61,12 +70,16 @@ export default function LoginPage() {
                 type="password"
                 placeholder="비밀번호를 입력해주세요"
                 autoComplete="current-password"
+                {...form.register("password")}
               />
             </div>
+            
+            {errorMessage && <FieldError message={errorMessage}></FieldError>}
 
-            <Button type="button" className="w-full" onClick={() => console.log(form.getValues())}>
-              로그인
+            <Button type="submit" className="w-full">
+              {isLoading ? "로그인 중..." : "로그인"}
             </Button>
+
           </form>
 
           <p className="text-muted-foreground mt-6 text-center text-sm">
@@ -80,6 +93,6 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
-    </main>
+    </main >
   )
 }

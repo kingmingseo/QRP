@@ -11,10 +11,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) { }
-  getHello(): string {
-    return 'Hello World!';
-  }
-
+  
   async checkDuplicateId(userId: string): Promise<boolean> {
     const exists = await this.userRepository.existsBy({ userId })
     return exists
@@ -40,6 +37,12 @@ export class UsersService {
       console.log(error)
       throw new InternalServerErrorException('회원가입 처리 중 오류가 발생했습니다.')
     }
+  }
+
+  async findByUserId(userId: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { userId },
+    })
   }
 
 }
