@@ -1,4 +1,25 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm"
+import * as CryptoJS from 'crypto-js';
+
+const SECRET = process.env.ENCRYPTION_SECRET_KEY;
+
+const encryptedColumn = (options?: object): PropertyDecorator =>
+  Column({
+    ...options,
+    transformer: {
+      to: (value: string) => {
+        if (!value) return value;
+        return CryptoJS.AES.encrypt(value, SECRET).toString();
+      },
+      from: (value: string) => {
+        if (!value) return value;
+        const bytes = CryptoJS.AES.decrypt(value, SECRET);
+        return bytes.toString(CryptoJS.enc.Utf8);
+      },
+    },
+  });
+
+
 
 @Entity("users")
 export class User {
@@ -12,33 +33,33 @@ export class User {
   qrCode!: string
 
   @Column()
-  password!: string
+  password!: string  
 
-  @Column()
+  @encryptedColumn()
   name!: string
 
-  @Column()
+  @encryptedColumn()
   birthDate!: string
 
-  @Column({ default: "unknown" })
+  @encryptedColumn({ default: "unknown" })
   gender!: string
 
-  @Column({ default: "unknown" })
+  @encryptedColumn({ default: "unknown" })
   bloodType!: string
 
-  @Column({ nullable: true })
+  @encryptedColumn({ nullable: true })
   illness?: string
 
-  @Column({ nullable: true })
+  @encryptedColumn({ nullable: true })
   medications?: string
 
-  @Column({ nullable: true })
+  @encryptedColumn({ nullable: true })
   allergies?: string
 
-  @Column()
+  @encryptedColumn()
   emergencyContact1!: string
 
-  @Column({ nullable: true })
+  @encryptedColumn({ nullable: true })
   emergencyContact2?: string
 
   @CreateDateColumn()
