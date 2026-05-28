@@ -28,7 +28,6 @@ export function useCheckUserId(userId: string) {
         const res = await api.get(`/users/check-userid?${params.toString()}`, {
           signal: controller.signal,
         })
-        console.log(res)
         if (res.status !== 200) {
           setStatus("idle")
           return

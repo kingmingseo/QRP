@@ -4,6 +4,7 @@ import { api } from "./axios";
 export type MedicalInfo = {
   id: number
   userId: string
+  qrCode: string
   name: string
   birthDate: string
   gender: string
@@ -16,6 +17,19 @@ export type MedicalInfo = {
   createdAt: string
   updatedAt: string
 }
+
+export type PublicMedicalInfo = Pick<
+  MedicalInfo,
+  | 'name'
+  | 'birthDate'
+  | 'gender'
+  | 'bloodType'
+  | 'illness'
+  | 'medications'
+  | 'allergies'
+  | 'emergencyContact1'
+  | 'emergencyContact2'
+>
 
 export async function createUser(userInfo: CreateUserDto) {
   const response = api.post('/users', userInfo)
@@ -30,5 +44,12 @@ export async function login(loginInfo: LoginDto) {
 
 export async function getMyMedicalInfo() {
   const response = await api.get<MedicalInfo>('/auth/me')
+
+  return response.data
+}
+
+export async function getMedicalInfoByQrCode(qrCode: string) {
+  const response = await api.get<PublicMedicalInfo>(`/users/medical-info/${qrCode}`)
+
   return response.data
 }

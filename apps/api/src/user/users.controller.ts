@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
 } from '@nestjs/common';
@@ -32,5 +33,10 @@ export class UsersController {
 
     const exists = await this.usersService.checkDuplicateId(userId.trim())
     return { available: !exists }
+  }
+
+  @Get('medical-info/:qrCode')
+  async getMedicalInfoByQrCode(@Param('qrCode') qrCode: string) {
+    return this.usersService.findPublicMedicalInfoByQrCode(qrCode)
   }
 }

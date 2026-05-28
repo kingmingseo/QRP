@@ -5,6 +5,7 @@ import { App } from "./App.tsx"
 import { RegistrationPage } from "./pages/registration-page.tsx"
 import LoginPage from "./pages/login-page.tsx"
 import MedicalInfoPage from "./pages/medical-info-page.tsx"
+import PageGuard from "./guard/page.guard.tsx"
 
 function NotFoundPage() {
   return (
@@ -27,14 +28,22 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <PageGuard>
+        <LoginPage />
+      </PageGuard>
+    ),
   },
   {
     path: "/registration",
-    element: <RegistrationPage />,
+    element: (
+      <PageGuard>
+        <RegistrationPage />
+      </PageGuard>
+    ),
   },
   {
-    path: "/medical-info",
+    path: "/medical-info/:qrCode",
     element: <MedicalInfoPage />,
   },
 ])

@@ -15,9 +15,11 @@ import { loginSchema, type LoginDto } from "@workspace/shared"
 import { useForm } from "react-hook-form"
 import { FieldError } from "@workspace/ui/components/fieldError"
 import { useLogin } from "@/hooks/useLogin"
+import { useAuthStore } from "@/store/auth.store"
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const checkAuth = useAuthStore((state) => state.checkAuth)
 
   const form = useForm<LoginDto>({
     resolver: zodResolver(loginSchema),
@@ -31,7 +33,9 @@ export default function LoginPage() {
 
   async function onSubmit(values: LoginDto) {
     await loginUser(values)
-    navigate("/medical-info")
+    await checkAuth()
+    const qrCode = useAuthStore.getState().user?.qrCode
+    navigate(qrCode ? `/medical-info/${qrCode}` : "/")
   }
 
   return (

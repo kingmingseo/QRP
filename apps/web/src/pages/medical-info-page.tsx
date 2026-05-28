@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
-import { Link, useNavigate } from "react-router"
+import { Link, useParams } from "react-router"
 import {
   Activity,
   AlertTriangle,
@@ -11,9 +11,7 @@ import {
   Pill,
   UserRound,
 } from "lucide-react"
-import axios from "axios"
 
-import { getMyMedicalInfo, type MedicalInfo } from "@/api/user.api"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -22,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { getMedicalInfoByQrCode, type PublicMedicalInfo } from "@/api/user.api"
 
 const genderLabels: Record<string, string> = {
   unknown: "모름",
@@ -31,30 +30,31 @@ const genderLabels: Record<string, string> = {
 }
 
 export default function MedicalInfoPage() {
-  const navigate = useNavigate()
-  const [medicalInfo, setMedicalInfo] = useState<MedicalInfo | null>(null)
+  const { qrCode } = useParams()
+  const [medicalInfo, setMedicalInfo] = useState<PublicMedicalInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
     async function loadMedicalInfo() {
-      try {
-        const data = await getMyMedicalInfo()
-        setMedicalInfo(data)
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          navigate("/login")
-          return
-        }
+      if (!qrCode) {
+        setErrorMessage("QR 코드가 올바르지 않습니다.")
+        setIsLoading(false)
+        return
+      }
 
-        setErrorMessage("의료 정보를 불러오지 못했습니다.")
+      try {
+        const data = await getMedicalInfoByQrCode(qrCode)
+        setMedicalInfo(data)
+      } catch {
+        setErrorMessage("등록된 의료 정보를 찾을 수 없습니다.")
       } finally {
         setIsLoading(false)
       }
     }
 
     loadMedicalInfo()
-  }, [navigate])
+  }, [qrCode])
 
   const age = useMemo(() => {
     if (!medicalInfo?.birthDate) return null
@@ -90,7 +90,7 @@ export default function MedicalInfoPage() {
         <div className="grid w-full max-w-[430px] gap-4">
           <p className="text-sm text-destructive">{errorMessage}</p>
           <Button asChild>
-            <Link to="/login">로그인으로 이동</Link>
+            <Link to="/login">로그인 페이지로 이동</Link>
           </Button>
         </div>
       </main>
@@ -146,7 +146,6 @@ export default function MedicalInfoPage() {
             title="기본 정보"
             description="본인 확인에 필요한 정보"
             items={[
-              { label: "아이디", value: medicalInfo.userId },
               { label: "이름", value: medicalInfo.name },
               { label: "생년월일", value: medicalInfo.birthDate },
               { label: "성별", value: genderLabels[medicalInfo.gender] ?? medicalInfo.gender },

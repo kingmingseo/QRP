@@ -1,9 +1,22 @@
-import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './users.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from '@workspace/shared/schemas/registration';
 import * as bcrypt from 'bcrypt'
+
+export type PublicMedicalInfo = Pick<
+  User,
+  | 'name'
+  | 'birthDate'
+  | 'gender'
+  | 'bloodType'
+  | 'illness'
+  | 'medications'
+  | 'allergies'
+  | 'emergencyContact1'
+  | 'emergencyContact2'
+>
 
 @Injectable()
 export class UsersService {
@@ -49,6 +62,28 @@ export class UsersService {
     return await this.userRepository.findOne({
       where: { id },
     })
+  }
+
+  async findPublicMedicalInfoByQrCode(qrCode: string): Promise<PublicMedicalInfo> {
+    const user = await this.userRepository.findOne({
+      where: { qrCode },
+    })
+
+    if (!user) {
+      throw new NotFoundException('등록된 의료 정보를 찾을 수 없습니다.')
+    }
+
+    return {
+      name: user.name,
+      birthDate: user.birthDate,
+      gender: user.gender,
+      bloodType: user.bloodType,
+      illness: user.illness,
+      medications: user.medications,
+      allergies: user.allergies,
+      emergencyContact1: user.emergencyContact1,
+      emergencyContact2: user.emergencyContact2,
+    }
   }
 
 }
