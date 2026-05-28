@@ -7,22 +7,21 @@ import {
   Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { registrationSchema } from "@workspace/shared/schemas/registration"
+import { createUserSchema, type CreateUserDto } from "@workspace/shared/schemas/registration"
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
   @Post()
-  register(@Body() body: unknown) {
-    const result = registrationSchema.safeParse(body)
+  register(@Body() userInfo: CreateUserDto) {
+    const result = createUserSchema.safeParse(userInfo)
 
     if (!result.success) {
       throw new BadRequestException(result.error.flatten())
     }
 
-    const dto = result.data
-    return dto
+    return this.usersService.createUser(userInfo)
   }
 
   @Get('check-userid')

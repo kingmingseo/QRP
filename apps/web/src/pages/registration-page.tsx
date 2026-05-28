@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { Link } from "react-router"
 
-import { registrationSchema, type RegistrationDto } from "@workspace/shared"
+import { registrationFormSchema, type RegistrationFormDto } from "@workspace/shared"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select"
 import { useCheckUserId } from "../hooks/useCheckUserId"
+import { createUser } from "@/api/user.api"
 
 type RegistrationStep = "account" | "health" | "personal"
 type DuplicateStatus = "idle" | "checking" | "available" | "taken"
@@ -44,8 +45,9 @@ export function RegistrationPage() {
   const isHealthStep = step === "health"
   const isPersonalStep = step === "personal"
 
-  const form = useForm<RegistrationDto>({
-    resolver: zodResolver(registrationSchema),
+  const form = useForm<RegistrationFormDto>({
+    resolver: zodResolver(registrationFormSchema),
+    mode: "onChange",
     defaultValues: {
       userId: "",
       password: "",
@@ -97,8 +99,10 @@ export function RegistrationPage() {
     }
   }
 
-  async function onSubmit(values: RegistrationDto) {
-    console.log(values)
+  async function onSubmit(values: RegistrationFormDto) {
+    const { passwordConfirm, ...createUserDto } = values
+
+    await createUser(createUserDto)
   }
 
   return (
@@ -214,7 +218,7 @@ function AccountFields({
   form,
   duplicateStatus,
 }: {
-  form: UseFormReturn<RegistrationDto>
+  form: UseFormReturn<RegistrationFormDto>
   duplicateStatus: DuplicateStatus
 }) {
   return (
@@ -268,7 +272,7 @@ function AccountFields({
   )
 }
 
-function HealthFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
+function HealthFields({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
   return (
     <>
       <div className="grid gap-2">
@@ -336,7 +340,8 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationDto> }) {
   )
 }
 
-function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
+function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
+  const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false)
   return (
     <>
       <div className="grid gap-2">
@@ -359,7 +364,7 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
 
             return (
               <>
-                <Popover>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -380,9 +385,12 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationDto> }) {
                       mode="single"
                       selected={selectedDate}
                       defaultMonth={selectedDate}
-                      onSelect={(date) =>
+                      onSelect={(date) => {
                         field.onChange(date ? format(date, "yyyy-MM-dd") : "")
+                        setDatePickerOpen(false)
                       }
+                      }
+                      captionLayout="dropdown"
                     />
                   </PopoverContent>
                 </Popover>

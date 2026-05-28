@@ -1,4 +1,5 @@
 // hooks/useCheckUserId.ts
+import { api } from "@/api/axios"
 import { useEffect, useState } from "react"
 
 type Status = "idle" | "checking" | "available" | "taken"
@@ -24,16 +25,17 @@ export function useCheckUserId(userId: string) {
       setStatus("checking")
       try {
         const params = new URLSearchParams({ userId: id })
-        const res = await fetch(`/api/users/check-userid?${params.toString()}`, {
+        const res = await api.get(`/users/check-userid?${params.toString()}`, {
           signal: controller.signal,
         })
-
-        if (!res.ok) {
+        console.log(res)
+        if (res.status !== 200) {
           setStatus("idle")
           return
         }
 
-        const { available } = await res.json()
+        const { available } = res.data
+      
         setStatus(available ? "available" : "taken")
       } catch (error) {
         if (controller.signal.aborted) return
