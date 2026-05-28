@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
-    "loadash": "^1.0.0"
+    "loadash": "^1.0.0",
+    "tsconfig-paths": "^4.2.0"
   }
 }
