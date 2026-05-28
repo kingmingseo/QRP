@@ -4,6 +4,7 @@ import { App } from "./App.tsx"
 
 import { RegistrationPage } from "./pages/registration-page.tsx"
 import LoginPage from "./pages/login-page.tsx"
+import MedicalInfoPage from "./pages/medical-info-page.tsx"
 
 function NotFoundPage() {
   return (
@@ -32,8 +33,8 @@ export const router = createBrowserRouter([
     path: "/registration",
     element: <RegistrationPage />,
   },
-  // {
-  //   path: "/health-info/:userId",
-  //   element: <InfoPage />,
-  // },
+  {
+    path: "/medical-info",
+    element: <MedicalInfoPage />,
+  },
 ])

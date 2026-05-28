@@ -1,6 +1,22 @@
 import type { CreateUserDto, LoginDto } from "@workspace/shared";
 import { api } from "./axios";
 
+export type MedicalInfo = {
+  id: number
+  userId: string
+  name: string
+  birthDate: string
+  gender: string
+  bloodType: string
+  illness?: string | null
+  medications?: string | null
+  allergies?: string | null
+  emergencyContact1: string
+  emergencyContact2?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export async function createUser(userInfo: CreateUserDto) {
   const response = api.post('/users', userInfo)
 
@@ -10,4 +26,9 @@ export async function createUser(userInfo: CreateUserDto) {
 export async function login(loginInfo: LoginDto) {
   const response = api.post('/auth/login', loginInfo)
   return response
+}
+
+export async function getMyMedicalInfo() {
+  const response = await api.get<MedicalInfo>('/auth/me')
+  return response.data
 }

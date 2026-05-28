@@ -32,6 +32,12 @@ export class User {
   @Column({ nullable: true })
   allergies?: string
 
+  @Column()
+  emergencyContact1!: string
+
+  @Column({ nullable: true })
+  emergencyContact2?: string
+
   @CreateDateColumn()
   createdAt!: Date
 

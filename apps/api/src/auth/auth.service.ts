@@ -3,6 +3,7 @@ import * as bcrypt from "bcrypt"
 import type { LoginDto } from "@workspace/shared/schemas/login"
 import { UsersService } from "src/user/users.service"
 import { JwtService } from "@nestjs/jwt"
+import type { User } from "src/user/users.entity"
 
 @Injectable()
 export class AuthService {
@@ -28,7 +29,7 @@ export class AuthService {
       sub: user.id,
       userId: user.userId,
     })
-    console.log('로그인성공')
+
     return {
       accessToken,
       user: {
@@ -36,6 +37,26 @@ export class AuthService {
         userId: user.userId,
         name: user.name,
       }
+    }
+  }
+
+  async getCurrentUser(accessToken?: string): Promise<Omit<User, "password">> {
+    if (!accessToken) {
+      throw new UnauthorizedException("로그인이 필요합니다.")
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync<{ sub: number }>(accessToken)
+      const user = await this.usersService.findById(payload.sub)
+
+      if (!user) {
+        throw new UnauthorizedException("사용자를 찾을 수 없습니다.")
+      }
+
+      const { password, ...userWithoutPassword } = user
+      return userWithoutPassword
+    } catch {
+      throw new UnauthorizedException("로그인이 필요합니다.")
     }
   }
 }

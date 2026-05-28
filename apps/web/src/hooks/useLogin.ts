@@ -16,7 +16,6 @@ export function useLogin() {
 
     try {
       const result = await login(values)
-      console.log(result)
       setStatus("success")
       return result
     } catch (error) {

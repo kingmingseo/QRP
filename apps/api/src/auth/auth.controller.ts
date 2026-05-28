@@ -1,11 +1,16 @@
-import { BadRequestException, Body, Controller, Post, Res } from "@nestjs/common"
-import type { Response } from "express"
+import { BadRequestException, Body, Controller, Get, Post, Req, Res } from "@nestjs/common"
+import type { Request, Response } from "express"
 import { AuthService } from "./auth.service"
 import { loginSchema, type LoginDto } from "@workspace/shared/schemas/login"
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
+
+  @Get("me")
+  async me(@Req() req: Request) {
+    return this.authService.getCurrentUser(req.cookies?.accessToken)
+  }
 
   @Post("login")
   async login(

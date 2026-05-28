@@ -20,6 +20,8 @@ export const createUserSchema = z.object({
   illness: z.string().optional(),
   medications: z.string().optional(),
   allergies: z.string().optional(),
+  emergencyContact1: z.string().min(1, "긴급연락처 1을 입력하세요"),
+  emergencyContact2: z.string().optional(),
 })
 
 export const registrationFormSchema = createUserSchema

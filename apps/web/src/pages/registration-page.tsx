@@ -1,8 +1,8 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Controller, type UseFormReturn, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 
 import { registrationFormSchema, type RegistrationFormDto } from "@workspace/shared"
 import { Button } from "@workspace/ui/components/button"
@@ -17,6 +17,13 @@ import { Calendar } from "@workspace/ui/components/calendar"
 import { FieldError } from "@workspace/ui/components/fieldError"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import {
   Popover,
   PopoverContent,
@@ -40,7 +47,9 @@ const accountFields = ["userId", "password", "passwordConfirm"] as const
 const personalFields = ["name", "birthDate", "gender"] as const
 
 export function RegistrationPage() {
+  const navigate = useNavigate()
   const [step, setStep] = useState<RegistrationStep>("account")
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false)
 
   const isHealthStep = step === "health"
   const isPersonalStep = step === "personal"
@@ -59,6 +68,8 @@ export function RegistrationPage() {
       illness: "",
       medications: "",
       allergies: "",
+      emergencyContact1: "",
+      emergencyContact2: "",
     },
   })
 
@@ -69,6 +80,16 @@ export function RegistrationPage() {
   })
 
   const duplicateStatus = useCheckUserId(userId)
+
+  useEffect(() => {
+    if (!isSuccessDialogOpen) return
+
+    const redirectTimer = window.setTimeout(() => {
+      navigate("/login")
+    }, 3000)
+
+    return () => window.clearTimeout(redirectTimer)
+  }, [isSuccessDialogOpen, navigate])
 
   async function handleNextAccount() {
     const isValid = await form.trigger(accountFields)
@@ -103,10 +124,22 @@ export function RegistrationPage() {
     const { passwordConfirm, ...createUserDto } = values
 
     await createUser(createUserDto)
+    setIsSuccessDialogOpen(true)
   }
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8 text-foreground">
+      <Dialog open={isSuccessDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>회원가입이 완료되었습니다</DialogTitle>
+            <DialogDescription>
+              3초 뒤 로그인 페이지로 이동합니다.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       <Card className="w-full max-w-[430px] shadow-none">
         <CardHeader className="space-y-3">
           <div className="flex items-center gap-2">
@@ -214,6 +247,14 @@ export function RegistrationPage() {
   )
 }
 
+function RequiredBadge() {
+  return (
+    <span className="text-red-500" aria-hidden="true">
+      *
+    </span>
+  )
+}
+
 function AccountFields({
   form,
   duplicateStatus,
@@ -224,7 +265,10 @@ function AccountFields({
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="user-id">아이디</Label>
+        <Label htmlFor="user-id">
+          아이디
+          <RequiredBadge />
+        </Label>
         <Input
           id="user-id"
           type="text"
@@ -246,7 +290,10 @@ function AccountFields({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">비밀번호</Label>
+        <Label htmlFor="password">
+          비밀번호
+          <RequiredBadge />
+        </Label>
         <Input
           id="password"
           type="password"
@@ -258,7 +305,10 @@ function AccountFields({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password-confirm">비밀번호 확인</Label>
+        <Label htmlFor="password-confirm">
+          비밀번호 확인
+          <RequiredBadge />
+        </Label>
         <Input
           id="password-confirm"
           type="password"
@@ -276,7 +326,10 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="bloodType">혈액형</Label>
+        <Label htmlFor="bloodType">
+          혈액형
+          <RequiredBadge />
+        </Label>
         <Controller
           control={form.control}
           name="bloodType"
@@ -336,6 +389,33 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
         />
         <FieldError message={form.formState.errors.allergies?.message} />
       </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="emergency-contact-1">
+          긴급연락처 1
+          <RequiredBadge />
+        </Label>
+        <Input
+          id="emergency-contact-1"
+          type="tel"
+          placeholder="예: 010-1234-5678"
+          autoComplete="tel"
+          {...form.register("emergencyContact1")}
+        />
+        <FieldError message={form.formState.errors.emergencyContact1?.message} />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="emergency-contact-2">긴급연락처 2</Label>
+        <Input
+          id="emergency-contact-2"
+          type="tel"
+          placeholder="예: 010-9876-5432"
+          autoComplete="tel"
+          {...form.register("emergencyContact2")}
+        />
+        <FieldError message={form.formState.errors.emergencyContact2?.message} />
+      </div>
     </>
   )
 }
@@ -345,7 +425,10 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="name">이름</Label>
+        <Label htmlFor="name">
+          이름
+          <RequiredBadge />
+        </Label>
         <Input
           id="name"
           placeholder="이름을 입력하세요"
@@ -355,7 +438,10 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="birth-date">생년월일</Label>
+        <Label htmlFor="birth-date">
+          생년월일
+          <RequiredBadge />
+        </Label>
         <Controller
           control={form.control}
           name="birthDate"
@@ -402,7 +488,10 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="gender">성별</Label>
+        <Label htmlFor="gender">
+          성별
+          <RequiredBadge />
+        </Label>
         <Controller
           control={form.control}
           name="gender"

@@ -1,4 +1,4 @@
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -17,6 +17,7 @@ import { FieldError } from "@workspace/ui/components/fieldError"
 import { useLogin } from "@/hooks/useLogin"
 
 export default function LoginPage() {
+  const navigate = useNavigate()
 
   const form = useForm<LoginDto>({
     resolver: zodResolver(loginSchema),
@@ -29,8 +30,8 @@ export default function LoginPage() {
   const { loginUser, isLoading, errorMessage } = useLogin()
 
   async function onSubmit(values: LoginDto) {
-    const result = await loginUser(values)
-    console.log(result)
+    await loginUser(values)
+    navigate("/medical-info")
   }
 
   return (
@@ -38,8 +39,8 @@ export default function LoginPage() {
       <Card className="w-full max-w-[430px] shadow-none">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl">로그인</CardTitle>
-          <CardDescription>
-            QRP 계정으로 로그인해 건강 기록을 이어가세요.
+          <CardDescription className="text-xs">
+            로그인을 통해 의료정보를 등록 및 수정 할 수 있습니다.
           </CardDescription>
         </CardHeader>
         <CardContent>
