@@ -130,7 +130,7 @@ export default function MedicalInfoPage() {
             />
             <SummaryItem
               icon={<CalendarDays className="size-4" />}
-              label="생년월일"
+              label="나이"
               value={age === null ? medicalInfo.birthDate : `${age}세`}
             />
             <SummaryItem
