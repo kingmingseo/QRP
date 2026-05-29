@@ -1,19 +1,22 @@
 import { Module } from "@nestjs/common"
 import { ConfigModule, ConfigService } from "@nestjs/config"
 import { TypeOrmModule } from "@nestjs/typeorm"
+import { join } from "path"
 import { AppController } from "./app.controller"
 import { AppService } from "./app.service"
 import { UsersModule } from "./user/users.module"
 import { AuthModule } from "./auth/auth.module"
 
+const envFileName =
+  process.env.NODE_ENV === "production"
+    ? ".env.production"
+    : ".env.development"
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === "production"
-          ? ".env.production"
-          : ".env.development",
+      envFilePath: join(__dirname, "..", envFileName),
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
