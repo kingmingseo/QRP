@@ -22,7 +22,6 @@ jobs:
             set -e
 
             APP_DIR="${{ secrets.EC2_APP_DIR || '/home/ubuntu/QRP' }}"
-            WEB_ROOT="${{ secrets.EC2_WEB_ROOT || '/var/www/qrp' }}"
             BRANCH="${{ github.ref_name }}"
 
             cd "$APP_DIR" 
@@ -34,15 +33,6 @@ jobs:
             pnpm install --frozen-lockfile
             pnpm --filter @workspace/shared build
             pnpm --filter api build
-            pnpm --filter web build
-
-            sudo mkdir -p "$WEB_ROOT"
-            sudo rsync -av --delete "$APP_DIR/apps/web/dist/" "$WEB_ROOT/"
-            sudo chown -R www-data:www-data "$WEB_ROOT"
-            sudo chmod -R 755 "$WEB_ROOT"
 
             pm2 restart qrp-api || pm2 start "$APP_DIR/apps/api/dist/main.js" --name qrp-api
             pm2 save
-
-            sudo nginx -t
-            sudo systemctl reload nginx
