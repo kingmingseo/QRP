@@ -15,6 +15,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "@vercel/analytics": "^2.0.1",
     "@zxing/browser": "^0.2.0",
     "axios": "^1.16.1",
     "date-fns": "^4.3.0",
