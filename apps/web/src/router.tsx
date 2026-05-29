@@ -6,6 +6,7 @@ import { RegistrationPage } from "./pages/registration-page.tsx"
 import LoginPage from "./pages/login-page.tsx"
 import MedicalInfoPage from "./pages/medical-info-page.tsx"
 import PageGuard from "./guard/page.guard.tsx"
+import { EditMedicalInfoPage } from "./pages/edit-medical-info-page.tsx"
 
 function NotFoundPage() {
   return (
@@ -45,5 +46,9 @@ export const router = createBrowserRouter([
   {
     path: "/medical-info/:qrCode",
     element: <MedicalInfoPage />,
+  },
+   {
+    path: "/medical-info-edit/:qrCode",
+    element: <EditMedicalInfoPage />,
   },
 ])

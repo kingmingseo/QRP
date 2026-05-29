@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Droplets,
   IdCard,
+  Pencil,
   Phone,
   Pill,
   UserRound,
@@ -23,7 +24,6 @@ import {
 import { getMedicalInfoByQrCode, type PublicMedicalInfo } from "@/api/user.api"
 
 const genderLabels: Record<string, string> = {
-  unknown: "모름",
   male: "남성",
   female: "여성",
   other: "기타",
@@ -115,6 +115,14 @@ export default function MedicalInfoPage() {
                 </p>
               </div>
             </div>
+            {qrCode && (
+              <Button asChild variant="outline" className="shrink-0">
+                <Link to={`/medical-info-edit/${qrCode}`}>
+                  <Pencil className="size-4" aria-hidden="true" />
+                  수정
+                </Link>
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

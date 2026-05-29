@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from "react"
-import { Controller, type UseFormReturn, useForm, useWatch } from "react-hook-form"
+import { useEffect, useState } from "react"
+import { Controller, type UseFormReturn, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
-import { Link, useNavigate } from "react-router"
-import { ArrowLeft, Camera, Loader2, X } from "lucide-react"
-import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser"
-
-import { registrationFormSchema, type RegistrationFormDto } from "@workspace/shared"
+import { useNavigate, useParams } from "react-router"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { editUserSchema, type EditUserDto } from "@workspace/shared"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -39,105 +37,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import { useCheckUserId } from "../hooks/useCheckUserId"
-import { createUser } from "@/api/user.api"
+import { editMedicalInfoByQrCode, getMedicalInfoByQrCode } from "@/api/user.api"
 
-type RegistrationStep = "account" | "health" | "personal"
-type DuplicateStatus = "idle" | "checking" | "available" | "taken"
+type EditStep = "health" | "personal"
 
-const accountFields = ["userId", "qrCode", "password", "passwordConfirm"] as const
 const personalFields = ["name", "birthDate", "gender"] as const
 
-export function RegistrationPage() {
+export function EditMedicalInfoPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState<RegistrationStep>("account")
+  const { qrCode } = useParams()
+  const [step, setStep] = useState<EditStep>("personal")
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false)
 
   const isHealthStep = step === "health"
   const isPersonalStep = step === "personal"
 
-  const form = useForm<RegistrationFormDto>({
-    resolver: zodResolver(registrationFormSchema),
+  const form = useForm<EditUserDto>({
+    resolver: zodResolver(editUserSchema),
     mode: "onChange",
-    defaultValues: {
-      userId: "",
-      qrCode: "",
-      password: "",
-      passwordConfirm: "",
-      name: "",
-      birthDate: "",
-      gender: "",
-      bloodType: "unknown",
-      illness: "",
-      medications: "",
-      allergies: "",
-      emergencyContact1: "",
-      emergencyContact2: "",
-    },
   })
 
-  const userId = useWatch({
-    control: form.control,
-    name: "userId",
-    defaultValue: "",
-  })
-
-  const duplicateStatus = useCheckUserId(userId)
 
   useEffect(() => {
     if (!isSuccessDialogOpen) return
 
     const redirectTimer = window.setTimeout(() => {
-      navigate("/login")
+      navigate(`/medical-info/${qrCode}`)
     }, 3000)
 
     return () => window.clearTimeout(redirectTimer)
   }, [isSuccessDialogOpen, navigate])
 
-  async function handleNextAccount() {
-    const isValid = await form.trigger(accountFields)
-    if (!isValid) return
-
-    if (duplicateStatus === "checking") {
-      form.setError("userId", { message: "아이디 중복 확인 중입니다." })
-      return
-    }
-
-    if (duplicateStatus === "taken") {
-      form.setError("userId", { message: "이미 사용 중인 아이디입니다." })
-      return
-    }
-
-    if (duplicateStatus !== "available") {
-      form.setError("userId", { message: "아이디 중복 확인을 완료해주세요." })
-      return
-    }
-
-    setStep("personal")
-  }
-
   async function handleNextPersonal() {
     const isValid = await form.trigger(personalFields)
-    if (isValid) {
-      setStep("health")
-    }
+    if (!isValid) return
+
+    setStep("health")
   }
 
-  async function onSubmit(values: RegistrationFormDto) {
-    const { passwordConfirm, ...createUserDto } = values
 
-    await createUser(createUserDto)
+  async function onSubmit(values: EditUserDto) {
+    if (!qrCode) {
+      return
+    }
+
+    await editMedicalInfoByQrCode(qrCode, values)
     setIsSuccessDialogOpen(true)
   }
+
+  useEffect(() => {
+    async function loadMedicalInfo() {
+      if (!qrCode) return
+
+      const data = await getMedicalInfoByQrCode(qrCode)
+      console.log(data)
+      form.reset({
+        name: data.name,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        bloodType: data.bloodType,
+        illness: data.illness ?? "",
+        medications: data.medications ?? "",
+        allergies: data.allergies ?? "",
+        emergencyContact1: data.emergencyContact1,
+        emergencyContact2: data.emergencyContact2 ?? "",
+      })
+    }
+
+    loadMedicalInfo()
+  }, [qrCode, form])
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8 text-foreground">
       <Dialog open={isSuccessDialogOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>회원가입이 완료되었습니다</DialogTitle>
+            <DialogTitle>개인 정보 수정이 완료되었습니다</DialogTitle>
             <DialogDescription>
-              3초 뒤 로그인 페이지로 이동합니다.
+              3초 뒤 정보 페이지로 이동합니다.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -151,7 +128,14 @@ export function RegistrationPage() {
               variant="ghost"
               size="sm"
               className="-ml-2"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (qrCode) {
+                  navigate(`/medical-info/${qrCode}`)
+                  return
+                }
+
+                navigate(-1)
+              }}
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
               뒤로가기
@@ -162,23 +146,17 @@ export function RegistrationPage() {
             <div className="h-1.5 flex-1 rounded-full bg-primary" />
             <div
               className={
-                isHealthStep || isPersonalStep
-                  ? "h-1.5 flex-1 rounded-full bg-primary"
-                  : "h-1.5 flex-1 rounded-full bg-muted"
-              }
-            />
-            <div
-              className={
                 isHealthStep
                   ? "h-1.5 flex-1 rounded-full bg-primary"
                   : "h-1.5 flex-1 rounded-full bg-muted"
               }
             />
+
           </div>
 
           <div className="space-y-1">
             <CardTitle className="text-2xl">
-              {isHealthStep ? "건강 정보" : isPersonalStep ? "개인 정보" : "회원가입"}
+              {isHealthStep ? "건강 정보 수정 " : "개인 정보 수정"}
             </CardTitle>
             <CardDescription className="text-xs">
               {isHealthStep
@@ -194,12 +172,10 @@ export function RegistrationPage() {
           <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)}>
             {isHealthStep ? (
               <HealthFields form={form} />
-            ) : isPersonalStep ? (
+            ) :
               <PersonalInfo form={form} />
-            ) : (
-              <AccountFields form={form} duplicateStatus={duplicateStatus} />
-            )}
 
+            }
             <div key={step}>
               {isHealthStep ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -224,16 +200,8 @@ export function RegistrationPage() {
                     제출
                   </Button>
                 </div>
-              ) : isPersonalStep ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setStep("account")}
-                  >
-                    이전
-                  </Button>
+              ) :
+                <div className="grid gap-3">
                   <Button
                     type="button"
                     className="w-full"
@@ -242,33 +210,13 @@ export function RegistrationPage() {
                     다음
                   </Button>
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  className="w-full"
-                  disabled={duplicateStatus === "checking"}
-                  onClick={handleNextAccount}
-                >
-                  다음
-                </Button>
-              )}
+              }
             </div>
           </form>
 
-          {!isHealthStep && !isPersonalStep && (
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              이미 계정이 있나요?{" "}
-              <Link
-                to="/login"
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                로그인
-              </Link>
-            </p>
-          )}
         </CardContent>
       </Card>
-    </main>
+    </main >
   )
 }
 
@@ -280,187 +228,7 @@ function RequiredBadge() {
   )
 }
 
-function normalizeQrCode(rawValue: string) {
-  const value = rawValue.trim()
-
-  if (value.startsWith("qrp:")) {
-    return value.replace("qrp:", "").trim()
-  }
-
-  try {
-    const url = new URL(value)
-    const segments = url.pathname.split("/").filter(Boolean)
-    return segments.at(-1) ?? value
-  } catch {
-    return value
-  }
-}
-
-function AccountFields({
-  form,
-  duplicateStatus,
-}: {
-  form: UseFormReturn<RegistrationFormDto>
-  duplicateStatus: DuplicateStatus
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const [isScanning, setIsScanning] = useState(false)
-  const [qrScanError, setQrScanError] = useState("")
-
-  useEffect(() => {
-    if (!isScanning) return
-
-    let isMounted = true
-    let controls: IScannerControls | null = null
-
-    async function startScanner() {
-      setQrScanError("")
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setQrScanError("카메라를 사용할 수 없습니다. 코드를 직접 입력해주세요.")
-        setIsScanning(false)
-        return
-      }
-
-      try {
-        if (!isMounted || !videoRef.current) return
-
-        const codeReader = new BrowserQRCodeReader()
-
-        controls = await codeReader.decodeFromConstraints(
-          {
-            video: {
-              facingMode: { ideal: "environment" },
-            },
-          },
-          videoRef.current,
-          (result) => {
-            const rawValue = result?.getText()
-
-            if (!rawValue) return
-
-            form.setValue("qrCode", normalizeQrCode(rawValue), {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-            setIsScanning(false)
-          },
-        )
-      } catch {
-        setQrScanError("카메라 권한을 확인해주세요. 코드를 직접 입력할 수도 있습니다.")
-        setIsScanning(false)
-      }
-    }
-
-    startScanner()
-
-    return () => {
-      isMounted = false
-      controls?.stop()
-    }
-  }, [form, isScanning])
-
-  return (
-    <>
-      <div className="grid gap-2">
-        <Label htmlFor="user-id">
-          아이디
-          <RequiredBadge />
-        </Label>
-        <Input
-          id="user-id"
-          type="text"
-          placeholder="아이디를 입력하세요"
-          autoComplete="username"
-          {...form.register("userId")}
-        />
-
-        {duplicateStatus === "checking" && (
-          <p className="text-xs text-muted-foreground">확인 중...</p>
-        )}
-        {duplicateStatus === "available" && (
-          <p className="text-xs text-green-500">사용 가능한 아이디입니다.</p>
-        )}
-        {duplicateStatus === "taken" && (
-          <p className="text-xs text-red-500">이미 사용 중인 아이디입니다.</p>
-        )}
-        <FieldError message={form.formState.errors.userId?.message} />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="qr-code">
-          QR 코드
-          <RequiredBadge />
-        </Label>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Input
-            id="qr-code"
-            type="text"
-            placeholder="QR 코드를 스캔하거나 입력하세요"
-            {...form.register("qrCode")}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="px-3"
-            onClick={() => setIsScanning((current) => !current)}
-          >
-            {isScanning ? <X className="size-4" /> : <Camera className="size-4" />}
-            <span className="sr-only">{isScanning ? "스캔 닫기" : "QR 스캔"}</span>
-          </Button>
-        </div>
-
-        {isScanning && (
-          <div className="overflow-hidden rounded-lg border bg-muted">
-            <video
-              ref={videoRef}
-              className="aspect-video w-full object-cover"
-              muted
-              playsInline
-            />
-          </div>
-        )}
-
-        {qrScanError && (
-          <p className="text-xs text-muted-foreground">{qrScanError}</p>
-        )}
-        <FieldError message={form.formState.errors.qrCode?.message} />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="password">
-          비밀번호
-          <RequiredBadge />
-        </Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="8자 이상"
-          autoComplete="new-password"
-          {...form.register("password")}
-        />
-        <FieldError message={form.formState.errors.password?.message} />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="password-confirm">
-          비밀번호 확인
-          <RequiredBadge />
-        </Label>
-        <Input
-          id="password-confirm"
-          type="password"
-          placeholder="비밀번호를 다시 입력하세요"
-          autoComplete="new-password"
-          {...form.register("passwordConfirm")}
-        />
-        <FieldError message={form.formState.errors.passwordConfirm?.message} />
-      </div>
-    </>
-  )
-}
-
-function HealthFields({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
+function HealthFields({ form }: { form: UseFormReturn<EditUserDto> }) {
   return (
     <>
       <div className="grid gap-2">
@@ -558,7 +326,7 @@ function HealthFields({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
   )
 }
 
-function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
+function PersonalInfo({ form }: { form: UseFormReturn<EditUserDto> }) {
   const [datePickerOpen, setDatePickerOpen] = useState<boolean>(false)
   return (
     <>
@@ -640,6 +408,7 @@ function PersonalInfo({ form }: { form: UseFormReturn<RegistrationFormDto> }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
+                  <SelectItem value="unknown">모름</SelectItem>
                   <SelectItem value="male">남성</SelectItem>
                   <SelectItem value="female">여성</SelectItem>
                   <SelectItem value="other">기타</SelectItem>

@@ -44,7 +44,11 @@ export class UsersController {
   @Patch('medical-info/:qrCode')
   async editMedicalInfoById(@Param('qrCode') qrCode: string, @Body() medicalInfo: EditUserDto) {
     const result = editUserSchema.safeParse(medicalInfo)
-    
-    return this.usersService.editMedicalInfoByQrCode(qrCode, medicalInfo)
+
+    if (!result.success) {
+      throw new BadRequestException(result.error.flatten())
+    }
+
+    return this.usersService.editMedicalInfoByQrCode(qrCode, result.data)
   }
 }

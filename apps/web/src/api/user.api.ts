@@ -1,25 +1,11 @@
-import type { CreateUserDto, LoginDto } from "@workspace/shared";
+import type { CreateUserDto, EditUserDto, LoginDto, MedicalInfo as SharedMedicalInfo } from "@workspace/shared";
 import { api } from "./axios";
 
-export type MedicalInfo = {
-  id: number
-  userId: string
-  qrCode: string
-  name: string
-  birthDate: string
-  gender: string
-  bloodType: string
-  illness?: string | null
-  medications?: string | null
-  allergies?: string | null
-  emergencyContact1: string
-  emergencyContact2?: string | null
-  createdAt: string
-  updatedAt: string
-}
+export type MedicalInfo = SharedMedicalInfo
+
 
 export type PublicMedicalInfo = Pick<
-  MedicalInfo,
+  SharedMedicalInfo,
   | 'name'
   | 'birthDate'
   | 'gender'
@@ -56,6 +42,12 @@ export async function getMyMedicalInfo() {
 
 export async function getMedicalInfoByQrCode(qrCode: string) {
   const response = await api.get<PublicMedicalInfo>(`/users/medical-info/${qrCode}`)
+
+  return response.data
+}
+
+export async function editMedicalInfoByQrCode(qrCode: string, editInfo: EditUserDto) {
+  const response = await api.patch(`/users/medical-info/${qrCode}`, editInfo)
 
   return response.data
 }
