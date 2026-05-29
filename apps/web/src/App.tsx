@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 import { Link } from "react-router"
 import { ChevronRight, HeartPulse, ShieldCheck, Siren } from "lucide-react"
-
+import { Analytics } from "@vercel/analytics/next"
 import { logout as requestLogout } from "@/api/user.api"
 import { useAuthStore } from "@/store/auth.store"
 import { Button } from "@workspace/ui/components/button"
@@ -153,6 +153,7 @@ export function App() {
           </div>
         </div>
       </section>
+      <Analytics />
     </main>
   )
 }

@@ -4,14 +4,10 @@ import { AuthService } from "./auth.service"
 import { loginSchema, type LoginDto } from "@workspace/shared/schemas/login"
 
 const getAccessTokenCookieOptions = (maxAge?: number): CookieOptions => {
-  const secure =
-    process.env.COOKIE_SECURE === "true" ||
-    process.env.CORS_ORIGIN?.startsWith("https://")
-
   return {
     httpOnly: true,
-    secure,
-    sameSite: secure ? "none" : "lax",
+    secure : true,
+    sameSite: "lax",
     path: "/",
     ...(maxAge ? { maxAge } : {}),
   }
