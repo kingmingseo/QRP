@@ -47,8 +47,12 @@ export const router = createBrowserRouter([
     path: "/medical-info/:qrCode",
     element: <MedicalInfoPage />,
   },
-   {
+  {
     path: "/medical-info-edit/:qrCode",
     element: <EditMedicalInfoPage />,
+  },
+  {
+    path: "/404",
+    element: <NotFoundPage />,
   },
 ])

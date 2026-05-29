@@ -30,6 +30,10 @@ export class UsersService {
     return exists
   }
 
+  async checkQrCodeExists(qrCode: string): Promise<boolean> {
+    return this.userRepository.existsBy({ qrCode })
+  }
+
   async createUser(userInfo: CreateUserDto): Promise<User> {
     const exists = await this.checkDuplicateId(userInfo.userId!)
 
