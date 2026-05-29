@@ -25,7 +25,7 @@ jobs:
             WEB_ROOT="${{ secrets.EC2_WEB_ROOT || '/var/www/qrp' }}"
             BRANCH="${{ github.ref_name }}"
 
-            cd "$APP_DIR"
+            cd "$APP_DIR" 
 
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
